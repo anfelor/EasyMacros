@@ -14,12 +14,12 @@
 
 module Language.Haskell.TH.Macro where
 
-import Data.List.NonEmpty as N
+import Data.List.NonEmpty (NonEmpty(..))
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import qualified Language.Haskell.Meta.Parse as Haskell
 
--- | Parse Haskell syntax with a QuasiQuoter
+-- | Parse Haskell syntax with a QuasiQuoter, should be implemented by the haskell compiler
 haskell :: QuasiQuoter
 haskell = QuasiQuoter
   { quoteExp  = return . fromRight . Haskell.parseExp
@@ -32,34 +32,22 @@ haskell = QuasiQuoter
     fromRight (Left str) = error str
     fromRight (Right a)  = a
 
--- | Combines Exp, Pat, Type and [Dec]
-class Code a
-instance Code Exp
-instance Code Pat
-instance Code Type
-instance a ~ Dec => Code [a]
+newtype Compiler a = Compiler { compile :: String -> Q a}
+type Syntax = NonEmpty String
+type Code a = NonEmpty (Q a)
 
--- | Compile a String into an object in the Q monad of type Code a
-newtype Code a => Compiler a = Compiler {compile :: String -> Q a}
+-- | Convenience function: Apply a Compiler to a Macro, getting actual code
+withCmp :: Compiler a -> Syntax -> Code a
+withCmp cmp m = compile cmp <$> m
 
--- | A macro. It takes a Compiler and returns a NonEmpty of Code a => Q a.
-newtype Code a => Macro a = Macro (Compiler a -> NonEmpty (Q a))
-
-toMacro :: Code a => NonEmpty String -> Macro a
-toMacro strs = Macro (\cmp -> fmap (compile cmp) strs)
-
--- | Convenience function: Apply a Compiler to a Macro, getting results
-withCmp :: Code a => Compiler a -> Macro a -> NonEmpty (Q a)
-withCmp cmp (Macro m) = m cmp
-
--- | Convenience function: Apply a QuasiQuoter to a Macro, results are of type ExpQ
-withQQ :: QuasiQuoter -> Macro Exp -> NonEmpty ExpQ
-withQQ qq (Macro m) = m (Compiler (quoteExp qq))
+-- | Convenience function: Apply a QuasiQuoter to a Macro.
+withQQ :: QuasiQuoter -> Syntax -> Code Exp
+withQQ qq = withCmp (Compiler (quoteExp qq))
 
 -- | Transform a nonempty list of ExpQ to a ExpQ containing the same structure
-nonEmptyE :: NonEmpty ExpQ -> Q Exp -- contains []
+nonEmptyE :: Code Exp -> Q Exp -- contains []
 nonEmptyE (e :| es) = [| $e :| $(listE es) |]
 
 -- | Transform a nonempty list of ExpQ to a ExpQ containing a list structure
-macroList :: NonEmpty ExpQ -> Q Exp
+macroList :: Code Exp -> Q Exp
 macroList (e :| es) = [| $e : $(listE es) |]
