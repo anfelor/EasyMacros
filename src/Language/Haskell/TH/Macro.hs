@@ -32,6 +32,19 @@ haskell = QuasiQuoter
     fromRight (Left str) = error str
     fromRight (Right a)  = a
 
+-- | Convenience functions for haskell QQ
+haskellExp  :: String -> Q Exp
+haskellExp  = quoteExp  haskell
+
+haskellPat  :: String -> Q Pat
+haskellPat  = quotePat  haskell
+
+haskellType :: String -> Q Type 
+haskellType = quoteType haskell
+
+haskellDec  :: String -> Q [Dec]
+haskellDec  = quoteDec  haskell
+
 newtype Compiler a = Compiler { compile :: String -> Q a}
 type Syntax = NonEmpty String
 type Code a = NonEmpty (Q a)
