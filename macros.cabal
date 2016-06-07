@@ -2,7 +2,7 @@ name:                macros
 version:             0.1.0.0
 synopsis:            An implementation of Haskell syntax as a macro
 description:         Please see README.md
-homepage:            https://github.com/githubuser/easymacros#readme
+homepage:            https://github.com/anfelor/EasyMacros#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Anton Felix Lorenzen
@@ -12,16 +12,20 @@ category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
 
+source-repository head
+  type:     git
+  location: https://github.com/anfelor/EasyMacros
+
 library
   exposed-modules:     Language.Haskell.TH.Macro
                      , Language.Haskell.TH.StandardMacros
   hs-source-dirs:      src
   default-language:    Haskell2010
-  build-depends:       base >= 4.7
+  build-depends:       base >= 4.7 && < 5
                      , template-haskell
                      , semigroups
                      , haskell-src-meta >= 0.6.0.14                     
-  ghc-options:       -Wall      
+  ghc-options:       -Wall  
 
 test-suite test-macros
   type:                exitcode-stdio-1.0
