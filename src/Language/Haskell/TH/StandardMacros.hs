@@ -19,6 +19,7 @@ module Language.Haskell.TH.StandardMacros
     , apply
     , conc
     , list
+    , cond
     ) where
 
 import Control.Applicative
@@ -64,6 +65,19 @@ do_ = doS . withCmp (Compiler cmp)
                     
         nobindS :: Q Stmt
         nobindS = NoBindS <$> haskellExp str
+
+-- macro cond
+cond :: Syntax -> Q Exp
+cond = condS . withCmp (Compiler cmp)
+  where
+    condS :: Code (Exp, Exp) -> Q Exp
+    condS (x :| []) = x >>= \(cond, ex) -> [| if $(return cond) then $(return ex) else error "Nothing could match!" |]
+    condS (x :| xs) = x >>= \(cond, ex) -> [| if $(return cond) then $(return ex) else $(condS (fromList xs)) |]
+    
+    cmp :: String -> Q (Exp, Exp)
+    cmp s = let (f', s') = fromJust $ divideAtSymbol "->" s
+            in (,) <$> haskellExp f' <*> haskellExp s'
+
 
 -- macro foldC
 foldC :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> Syntax -> Q Exp

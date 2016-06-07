@@ -18,6 +18,13 @@ test1 = $(do_
     , "mapM_ (stdout . (++[suffix]) . (prefix:)) dirs"
     ]))
 
+test2 :: Int
+test2 = $(cond
+    ( "False -> 1" :|
+    [ "2 == 3 -> 2"
+    , "2 == 2 -> 3" -- try changing it to False
+    ]))
+
 test3 :: [Int]
 test3 = $( apply
     ( "[1..(10*365)]" :|
@@ -42,6 +49,7 @@ main :: IO ()
 main = do
     putStrLn " -- Tests:"
     test1
+    print test2
     print test3
     putStrLn test4
     print test5
