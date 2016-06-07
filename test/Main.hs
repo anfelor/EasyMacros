@@ -18,11 +18,6 @@ test1 = $(do_
     , "mapM_ (stdout . (++[suffix]) . (prefix:)) dirs"
     ]))
 
-test2 :: [Int]
-test2 = Prelude.map -- map is not a macro, nontheless the arguments below should not be parsed as a macro.
-     (^2) 
-     [1,2,3]
-
 test3 :: [Int]
 test3 = $( apply
     ( "[1..(10*365)]" :|
@@ -47,7 +42,6 @@ main :: IO ()
 main = do
     putStrLn " -- Tests:"
     test1
-    print test2
     print test3
     putStrLn test4
     print test5
