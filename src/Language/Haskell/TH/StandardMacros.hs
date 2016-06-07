@@ -26,17 +26,14 @@ import Data.Maybe
 import Data.Semigroup
 import Data.List
 import Data.List.NonEmpty (NonEmpty(..), fromList, toList)
-import qualified Data.List.NonEmpty as NonEmpty
 import Language.Haskell.TH
-import Language.Haskell.TH.Quote
-import qualified Language.Haskell.Meta.Parse as Haskell
 
 import Language.Haskell.TH.Macro
 import Debug.Trace
 
 -- macro do_
 do_ :: Syntax -> Q Exp
-do_ = doS . withCmp compileStmt
+do_ = doS . withCmp (Compiler cmp)
   where
     doS :: Code Stmt -> Q Exp
     doS (x :| []) = x >>= \x' -> case x' of
@@ -47,28 +44,26 @@ do_ = doS . withCmp compileStmt
       BindS pat ex -> [| $(return ex) >>= \ $(return pat) -> $(doS (fromList xs)) |]
       LetS     dec -> letE (return <$> dec) (doS (fromList xs))
       NoBindS   ex -> [| $(return ex) >> $(doS (fromList xs)) |] 
-
-    compileStmt :: Compiler Stmt
-    compileStmt = Compiler cmp
-      where    
-        cmp :: String -> StmtQ
-        cmp str = trace str $ fromMaybe nobindS $ binding <|> letExpr
-          where
-            binding, letExpr :: Maybe (Q Stmt)
-            binding = divideAtSymbol "<-" str >>= \(pat, ex) ->
-                            Just $ BindS <$> (haskellPat pat) <*> (haskellExp ex)
-            letExpr = divideAtSymbol "=" str >>= \(pat, ex) -> Just $ LetS . (:[]) <$> var (drop 4 pat, ex)
-              where
-                var :: (String, String) -> Q Dec 
-                var (pat, ex)
-                  | ' ' `elem` trim pat = FunD (mkName (takeWhile (/=' ') pat)) <$> (:[]) <$> (Clause 
-                          <$> mapM haskellPat (split " " (trim (dropWhile (/=' ') pat)))
-                          <*> fmap NormalB (haskellExp ex)
-                          <*> return [])
-                  | otherwise = ValD <$> haskellPat pat <*> (NormalB <$> haskellExp ex) <*> return []
+   
+    cmp :: String -> StmtQ
+    cmp str = trace str $ fromMaybe nobindS $ binding <|> letExpr
+      where
+        binding, letExpr :: Maybe (Q Stmt)
+        binding = divideAtSymbol "<-" str >>= \(pat, ex) ->
+                        Just $ BindS <$> (haskellPat pat) <*> (haskellExp ex)
                         
-            nobindS :: Q Stmt
-            nobindS = NoBindS <$> haskellExp str
+        letExpr = divideAtSymbol "=" str >>= \(pat, ex) -> Just $ LetS . (:[]) <$> var (drop 4 pat, ex)
+          where
+            var :: (String, String) -> Q Dec 
+            var (pat, ex)
+              | ' ' `elem` trim pat = FunD (mkName (takeWhile (/=' ') pat)) <$> (:[]) <$> (Clause 
+                      <$> mapM haskellPat (split " " (trim (dropWhile (/=' ') pat)))
+                      <*> fmap NormalB (haskellExp ex)
+                      <*> return [])
+              | otherwise = ValD <$> haskellPat pat <*> (NormalB <$> haskellExp ex) <*> return []
+                    
+        nobindS :: Q Stmt
+        nobindS = NoBindS <$> haskellExp str
 
 -- macro foldC
 foldC :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> Syntax -> Q Exp
