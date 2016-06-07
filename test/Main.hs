@@ -9,12 +9,14 @@ import Language.Haskell.TH.StandardMacros
 
 import System.Directory
 
--- test1 :: IO ()
--- test1 = $(do_ (Syntax 
---     ( "dirs <- getDirectoryContents \"/\"" :| 
---     [ "let prefix = \"/\""
---     , "mapM_ (putStrLn . (prefix++)) dirs"
---     ])))
+test1 :: IO ()
+test1 = $(do_ 
+    ( "dirs <- getDirectoryContents \"/\"" :| 
+    [ "let prefix = '/'"
+    , "let suffix = prefix"
+    , "let stdout str = putStrLn str"
+    , "mapM_ (stdout . (++[suffix]) . (prefix:)) dirs"
+    ]))
 
 test2 :: [Int]
 test2 = Prelude.map -- map is not a macro, nontheless the arguments below should not be parsed as a macro.
@@ -44,7 +46,7 @@ test5 = $(conc
 main :: IO ()
 main = do
     putStrLn " -- Tests:"
-    -- test1
+    test1
     print test2
     print test3
     putStrLn test4

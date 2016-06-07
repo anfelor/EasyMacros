@@ -10,7 +10,7 @@
 -- Stability   :  experimental
 -- Portability :  portable (template-haskell)
 --
--- Basic macros in the haskell syntax
+-- Basic macros in the syntax
 
 module Language.Haskell.TH.StandardMacros
     ( do_
@@ -54,15 +54,25 @@ do_ = doS . withCmp compileStmt
         cmp :: String -> StmtQ
         cmp str = trace str $ fromMaybe nobindS $ binding <|> letExpr
           where
+            binding, letExpr :: Maybe (Q Stmt)
             binding = divideAtSymbol "<-" str >>= \(pat, ex) ->
-                            Just $ BindS <$> (quotePat haskell pat) <*> (quoteExp haskell ex)
-            letExpr = divideAtSymbol "=" str >>= \(pat, ex) ->
-                            Just $ LetS <$> quoteDec haskell str
-            nobindS = NoBindS <$> quoteExp haskell str
+                            Just $ BindS <$> (haskellPat pat) <*> (haskellExp ex)
+            letExpr = divideAtSymbol "=" str >>= \(pat, ex) -> Just $ LetS . (:[]) <$> var (drop 4 pat, ex)
+              where
+                var :: (String, String) -> Q Dec 
+                var (pat, ex)
+                  | ' ' `elem` trim pat = FunD (mkName (takeWhile (/=' ') pat)) <$> (:[]) <$> (Clause 
+                          <$> mapM haskellPat (split " " (trim (dropWhile (/=' ') pat)))
+                          <*> fmap NormalB (haskellExp ex)
+                          <*> return [])
+                  | otherwise = ValD <$> haskellPat pat <*> (NormalB <$> haskellExp ex) <*> return []
+                        
+            nobindS :: Q Stmt
+            nobindS = NoBindS <$> haskellExp str
 
 -- macro foldC
 foldC :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> Syntax -> Q Exp
-foldC fn a1 m = go fn a1 $ map (quoteExp haskell) $ toList m
+foldC fn a1 m = go fn a1 $ map haskellExp (toList m)
   where
     go :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> [Q Exp] -> Q Exp
     go fn a1 [] = a1
@@ -70,7 +80,7 @@ foldC fn a1 m = go fn a1 $ map (quoteExp haskell) $ toList m
 
 -- macro foldC1
 foldC1 :: Q Exp {-(b -> a -> b)-} -> Syntax -> Q Exp
-foldC1 fn (a :| as) = foldC fn  [| $(quoteExp haskell a) |] (fromList as)
+foldC1 fn (a :| as) = foldC fn  [| $(haskellExp a) |] (fromList as)
 
 -- macro apply
 apply :: Syntax -> Q Exp
@@ -84,13 +94,19 @@ conc = (foldC1) [| (<>) |]
 list :: Syntax -> Q Exp
 list = macroList . withQQ haskell
 
--- | Split a list into two parts at the first occurrence of a symbol.
-divideAtSymbol :: Eq a=> [a] -> [a] -> Maybe ([a], [a])
+-- | Split a list into two parts at the first occurrence of a symbol, not containing the symbol.
+divideAtSymbol :: Eq a => [a] -> [a] -> Maybe ([a], [a])
 divideAtSymbol sym xs = (,) <$> f <*> s
   where
     f = (\l -> take ((length l) - (length sym)) l) <$> find (isSuffixOf sym) (inits xs)
     s = drop (length sym) <$> find (isPrefixOf sym) (tails xs)
-                                
+
+-- | Split a list into many parts at the occurences of a symbol, not containing the symbol.
+split :: Eq a => [a] -> [a] -> [[a]]
+split sym xs = let strs = map (drop (length sym)) $ filter (isPrefixOf sym) (tails xs)
+                   strl = length xs : map length strs ++ [0]
+               in zipWith take (zipWith (-) strl (drop 1 strl)) (xs:strs)
+
 -- | Remove whitespace from both ends of the string.
 trim :: String -> String
 trim = reverse . dropWhile (==' ') . reverse . dropWhile (==' ')
