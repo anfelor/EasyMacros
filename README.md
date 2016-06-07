@@ -1,4 +1,6 @@
 # Proposal: EasyMacros (work in progress!)
+[![Build Status](https://travis-ci.org/anfelor/EasyMacros.svg?branch=master)](https://travis-ci.org/anfelor/EasyMacros)
+
 This is the library implementation of the EasyMacros proposal to the Haskell
 programming language. It is based on the idea, that
 ```haskell
