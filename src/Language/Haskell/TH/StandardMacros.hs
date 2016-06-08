@@ -71,9 +71,12 @@ do_ = eval cmp doS
         nobindS :: Either String Stmt
         nobindS = NoBindS <$> haskellExp str
 
+-- | First part of the case syntax.
 case_ :: String -> (Name -> Block -> Q Exp) -> Block -> Q Exp
 case_ str fn = fn (mkName str) 
 
+-- | Second part of the case syntax.
+-- Use it like: case_ "x" of_ {;}
 of_ :: Name -> Block -> Q Exp
 of_ name b = evaluate b parse caseS
   where
