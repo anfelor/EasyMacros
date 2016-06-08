@@ -24,13 +24,13 @@ import Language.Haskell.TH.Quote
 import qualified Language.Haskell.Meta.Parse as Haskell
 
 -- | Parse one line.
-type Parser   a = String     -> Either String a
+type Parser a = String -> Either String a
 
 -- | Compile a list of elements into a Q Exp
 type Compiler a = NonEmpty a -> Either String (Q Exp) 
 
 -- | Stores a list of strings. Given a parser and a compiler,
--- the parser maps linewise over the input, and the compiler
+-- the parser maps line by line over the input, and the compiler
 -- reduces the results to a Q Exp. 
 newtype Block = Block { evaluate :: forall a. Parser a -> Compiler a -> Q Exp }
 
@@ -124,9 +124,9 @@ haskell = QuasiQuoter
     fromRight (Right a)  = a
 
 -- | Parse a string as a Haskell expression
-haskellExp  :: String -> Either String Exp
+haskellExp  :: Parser Exp
 haskellExp  = Haskell.parseExp
 
 -- | Parse a string as a Haskell pattern
-haskellPat  :: String -> Either String Pat
+haskellPat  :: Parser Pat
 haskellPat  = Haskell.parsePat
