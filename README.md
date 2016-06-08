@@ -11,7 +11,7 @@ should be syntactic sugar for
 blockify ("x <- getLine" :| ["putStrLn x"]) :: Block
 ```
 
-This means that the code could easily be transformed by TemplateHaskell. A macro would then be [defined as](src/Language/Haskell/TH/StandardMacros.hs)
+This means that the code could easily be transformed by TemplateHaskell. A macro would then be [defined as](src/Language/Haskell/TH/StandardMacros.hs#L33)
 ```haskell
 macro do
 do :: Block -> Q Exp
@@ -24,7 +24,7 @@ main = $(do $ blockify
     ]))
 ```
 
-The last example already works: take a look at [the tests](test/Main.hs).
+The last example already works: take a look at [the tests](test/Main.hs#13).
 
 ## Benefits
 It would be much easier to use TemplateHaskell functions. This might allow for some nice syntax additions like
@@ -37,7 +37,7 @@ test3 = apply
     take 10
 ```
 
-Also (some) new additions to the language could be implemented as Haskell Libraries, for example ApplicativeDo, RecursiveDo,  MultiWayIf (as the [cond macro](src/Language/Haskell/TH/StandardMacros.hs)) and RebindableSyntax.
+Also (some) new additions to the language could be implemented as Haskell Libraries, for example ApplicativeDo, RecursiveDo,  MultiWayIf (as the [cond macro](src/Language/Haskell/TH/StandardMacros.hs#72)) and RebindableSyntax.
 
 In the case of RebindableSyntax one would probably want to chain the statements with (mkName ">>=") instead of the GHC.Base.>>= used in the example implementation in this project. Then one would simply have to type:
 ```haskell
