@@ -23,32 +23,42 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import qualified Language.Haskell.Meta.Parse as Haskell
 
+-- | Parse one line.
 type Parser   a = String     -> Either String a
+
+-- | Compile a list of elements into a Q Exp
 type Compiler a = NonEmpty a -> Either String (Q Exp) 
 
+-- | Stores a list of strings. Given a parser and a compiler,
+-- the parser maps linewise over the input, and the compiler
+-- reduces the results to a Q Exp. 
 newtype Block = Block { evaluate :: forall a. Parser a -> Compiler a -> Q Exp }
 
-
+-- | An error occurring while parsing
 data ParseError = ParseError String Int (NonEmpty String)
     deriving (Typeable)
 
+-- | Pretty print as "Parse error: MESSAGE at line LINE: BLOCK"
 instance Show ParseError where
     show (ParseError msg linenum exprs) = "Parse error: " ++ msg
       ++ " at line " ++ show linenum ++ ": \n\t"
       ++ intercalate "\n\t" (toList exprs)
 
+-- | default implementation
 instance Exception ParseError
 
-
+-- | An error occurring while compiling
 data CompileError = CompileError String (NonEmpty String)
 
+-- | Pretty print as "Compile error: MESSAGE: BLOCK"
 instance Show CompileError where
     show (CompileError msg exprs) = "Compile error: "
       ++ msg ++ ":\n\t" ++ intercalate "\n\t" (toList exprs)
 
+-- | default implementation
 instance Exception CompileError
 
-
+-- | Turn a list of strings into a block.
 blockify :: NonEmpty String -> Block
 blockify exprs = Block (\p c -> compile c $ parse p) 
   where
@@ -68,6 +78,7 @@ blockify exprs = Block (\p c -> compile c $ parse p)
           | (Right a)  <- compiled = a
           | (Left msg) <- compiled = throw (CompileError msg exprs)
 
+-- | Turn a maybe value into an Error, given an error message
 maybeToError :: String -> Maybe a -> Either String a
 maybeToError _ (Just x) = Right x
 maybeToError err Nothing = Left err 
@@ -90,10 +101,12 @@ foldC1 :: Q Exp {-(b -> a -> b)-} -> Block -> Q Exp
 foldC1 fn = eval haskellExp (\e -> 
                   let (a : as) = toList e in Right $ foldExps fn (return a) as)
 
+-- | Left-fold a list of expressions
 foldExps :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> [Exp] -> Q Exp
 foldExps _ acc [] = acc
 foldExps fn acc (x:xs) = foldExps fn [| $fn $acc $(return x) |] xs
 
+-- | evaluate with arguments flipped.
 eval :: Parser a -> Compiler a -> Block -> Q Exp
 eval p c b = evaluate b p c
 
