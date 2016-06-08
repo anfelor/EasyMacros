@@ -5,12 +5,13 @@ module Main where
 
 import Data.List
 import Data.List.NonEmpty (NonEmpty(..))
+import Language.Haskell.TH.Macro (blockify)
 import Language.Haskell.TH.StandardMacros
 
 import System.Directory
 
 test1 :: IO ()
-test1 = $(do_ 
+test1 = $(do_ $ blockify
     [ "dirs <- getDirectoryContents \"/\"" 
     , "let prefix = '/'"
     , "let suffix = prefix"
@@ -19,14 +20,14 @@ test1 = $(do_
     ])
 
 test2 :: Int
-test2 = $(cond
+test2 = $(cond $ blockify
     [ "False -> 1"
     , "2 == 3 -> 2"
     , "2 == 2 -> 3" -- try changing it to False
     ])
 
 test3 :: [Int]
-test3 = $( apply
+test3 = $( apply $ blockify
     [ "[1..(10*365)]"
     , "map (replicate 3)"
     , "concat"
@@ -34,13 +35,13 @@ test3 = $( apply
     ])
 
 test4 :: String
-test4 = intercalate "\n" $(list
+test4 = intercalate "\n" $(list $ blockify
     [ "\"Hello World!\""
     , "\"How are you?\"" 
     , "\"Yours, Anton\""])
 
 test5 :: Maybe [Int]
-test5 = $(conc
+test5 = $(conc $ blockify
     [ "Just [3]"
     , "Just [4]" 
     , "Nothing" ])
