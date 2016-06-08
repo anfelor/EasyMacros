@@ -32,21 +32,30 @@ haskell = QuasiQuoter
     fromRight (Left str) = error str
     fromRight (Right a)  = a
 
--- | Convenience functions for haskell QQ
+-- | Parse a string as a Haskell expression
 haskellExp  :: String -> Q Exp
 haskellExp  = quoteExp  haskell
 
+-- | Parse a string as a Haskell pattern
 haskellPat  :: String -> Q Pat
 haskellPat  = quotePat  haskell
 
+-- | Parse a string as a Haskell type
 haskellType :: String -> Q Type 
 haskellType = quoteType haskell
 
+-- | Parse a string as a Haskell declaration
 haskellDec  :: String -> Q [Dec]
 haskellDec  = quoteDec  haskell
 
+-- | A way of compiling a source string into an object in the Q monad.
 newtype Compiler a = Compiler { compile :: String -> Q a}
+
+-- | Every {  } literal is compiled to this type.
+-- Every expression seperated by ; is stored as a single string.
 type Syntax = NonEmpty String
+
+-- | Compiled Syntax.
 type Code a = NonEmpty (Q a)
 
 -- | Convenience function: Apply a Compiler to a Macro, getting actual code

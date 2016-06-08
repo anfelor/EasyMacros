@@ -32,7 +32,9 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Macro
 import Debug.Trace
 
--- macro do_
+-- | The do notation of Haskell implemented as a macro.
+-- Expressions are chained with GHC.Base.>>=, so it is not possible to rebind syntax.
+-- This is only an example, it does not use ApplicativeDo for instance!
 do_ :: Syntax -> Q Exp
 do_ = doS . withCmp (Compiler cmp)
   where
@@ -66,7 +68,9 @@ do_ = doS . withCmp (Compiler cmp)
         nobindS :: Q Stmt
         nobindS = NoBindS <$> haskellExp str
 
--- macro cond
+-- | MultiWayIf as a macro. The syntax is
+-- (Condition :: Bool) -> Expression
+-- At least one condition needs to match and all expressions need to evaluate to the same type.
 cond :: Syntax -> Q Exp
 cond = condS . withCmp (Compiler cmp)
   where
@@ -79,7 +83,8 @@ cond = condS . withCmp (Compiler cmp)
             in (,) <$> haskellExp f' <*> haskellExp s'
 
 
--- macro foldC
+-- | Classic left fold over Syntax and with Q Exp.
+-- All strings in Syntax are evaluated as a haskell expression! 
 foldC :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> Syntax -> Q Exp
 foldC fn a1 m = go fn a1 $ map haskellExp (toList m)
   where
@@ -87,19 +92,22 @@ foldC fn a1 m = go fn a1 $ map haskellExp (toList m)
     go fn a1 [] = a1
     go fn a1 (x:xs) = go fn [| $fn $a1 $x |] xs
 
--- macro foldC1
+-- | Classic foldl1, see above
 foldC1 :: Q Exp {-(b -> a -> b)-} -> Syntax -> Q Exp
 foldC1 fn (a :| as) = foldC fn  [| $(haskellExp a) |] (fromList as)
 
--- macro apply
+-- | Apply functions to arguments.
+-- Evaluates to: thr-line (snd-line (fst-line))
 apply :: Syntax -> Q Exp
-apply = (foldC1) [| flip ($) |]
+apply = foldC1 [| flip ($) |]
 
--- macro conc
+-- | Concatenate the arguments with (<>)
+-- All the strings in Syntax are evaluated as Haskell code,
+-- which needs to be an instance of Semigroup.
 conc :: Syntax -> Q Exp
-conc = (foldC1) [| (<>) |]
+conc = foldC1 [| (<>) |]
 
--- macro list
+-- | Turn all the Expressions into a list.
 list :: Syntax -> Q Exp
 list = macroList . withQQ haskell
 
