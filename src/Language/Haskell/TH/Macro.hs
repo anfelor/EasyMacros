@@ -110,19 +110,6 @@ foldExps fn acc (x:xs) = foldExps fn [| $fn $acc $(return x) |] xs
 eval :: Parser a -> Compiler a -> Block -> Q Exp
 eval p c b = evaluate b p c
 
--- | Parse Haskell syntax with a QuasiQuoter, should be implemented by the haskell compiler
-haskell :: QuasiQuoter
-haskell = QuasiQuoter
-  { quoteExp  = return . fromRight . Haskell.parseExp
-  , quotePat  = return . fromRight . Haskell.parsePat
-  , quoteType = return . fromRight . Haskell.parseType
-  , quoteDec  = return . fromRight . Haskell.parseDecs
-  }
-  where
-    fromRight :: Either String a -> a
-    fromRight (Left str) = error str
-    fromRight (Right a)  = a
-
 -- | Parse a string as a Haskell expression
 haskellExp  :: Parser Exp
 haskellExp  = Haskell.parseExp
