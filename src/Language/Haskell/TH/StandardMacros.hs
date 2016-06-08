@@ -14,6 +14,8 @@
 
 module Language.Haskell.TH.StandardMacros
     ( do_
+    , case_
+    , of_
     , apply
     , conc
     , list
@@ -68,6 +70,19 @@ do_ = eval cmp doS
                     
         nobindS :: Either String Stmt
         nobindS = NoBindS <$> haskellExp str
+
+case_ :: String -> (Name -> Block -> Q Exp) -> Block -> Q Exp
+case_ str fn = fn (mkName str) 
+
+of_ :: Name -> Block -> Q Exp
+of_ name b = evaluate b parse caseS
+  where
+    caseS :: Compiler Match
+    caseS m = Right $ return $ CaseE (VarE name) (toList m)
+    
+    parse :: Parser Match
+    parse s = maybeToError "No '->' included!" (divideAtSymbol "->" s) >>= 
+              \(f', s') -> liftA3 Match (haskellPat f') (NormalB <$> haskellExp s') (return [])
 
 -- | MultiWayIf as a macro. The syntax is
 -- (Condition :: Bool) -> Expression
