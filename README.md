@@ -45,6 +45,8 @@ import Prelude hiding ((do))
 import Language.Haskell.RebindableSyntax ((do))
 ```
 
+Go and [take a look at all the macros already implemented!](src/Language/Haskell/TH/StandardMacros.hs)
+
 ## Open Questions
 ### NonEmpty or List
 I've chosen to use NonEmpty for the source code. This reflects the fact, that a { } literal may not be empty.
@@ -84,12 +86,26 @@ haskellPat  :: Parser Pat
 That means that the implementation of a Haskell-Parser as part of GHC is absolutely necessary for the proposal!
 (This is why this library has haskell-src-meta as a dependency)
 
+### Relation to QuasiQuotes
+
+Every line in a block should stand on its own. There may be connections between lines,
+and not every kind of line may appear everywhere (e.g. do-notation doesn't allow for let bindings 
+to be the last expression in the block). Nonetheless keep in mind, that something like:
+```haskell
+main = parse hamlet
+  <html>
+    <body>
+     ..
+```
+is not what should be done with this feature. It is not a replacement for QuasiQuotes,
+but merely a nice addition to the Haskell language.
+
 ### The "macro" keyword 
 The "macro" keyword should be quite similar to the "infix" keyword.
-A function annotated with it must return a Q Exp (Option: Q [Dec] might be possible also...).
+A function annotated with it must return a Q Exp and will be evaluated at compile time.
 
-Option: If every argument would be of type Q Exp or Block,
-it could be considered, that passing arguments can happen without [|  |]
+Option: If every argument would need to be of type Q Exp or Block,
+it could be considered, that passing Q Exp can happen without using [|  |].
 
 If there are parenthesis around the name of a macro, the macro is turned into a usual function.
 ```haskell
