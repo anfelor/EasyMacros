@@ -24,7 +24,7 @@ main = $(do $ blockify
     ]))
 ```
 
-The last example already works: take a look at [the tests](test/Main.hs#13).
+The last example already works: take a look at [the tests](test/Main.hs#L13).
 
 ## Benefits
 It would be much easier to use TemplateHaskell functions. This might allow for some nice syntax additions like
@@ -37,7 +37,7 @@ test3 = apply
     take 10
 ```
 
-Also (some) new additions to the language could be implemented as Haskell Libraries, for example ApplicativeDo, RecursiveDo,  MultiWayIf (as the [cond macro](src/Language/Haskell/TH/StandardMacros.hs#72)) and RebindableSyntax.
+Also (some) new additions to the language could be implemented as Haskell Libraries, for example ApplicativeDo, RecursiveDo,  MultiWayIf (as the [cond macro](src/Language/Haskell/TH/StandardMacros.hs#L72)) and RebindableSyntax.
 
 In the case of RebindableSyntax one would probably want to chain the statements with (mkName ">>=") instead of the GHC.Base.>>= used in the example implementation in this project. Then one would simply have to type:
 ```haskell
