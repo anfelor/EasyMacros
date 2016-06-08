@@ -53,16 +53,16 @@ do_ = doS . withCmp (Compiler cmp)
       where
         binding, letExpr :: Maybe (Q Stmt)
         binding = divideAtSymbol "<-" str >>= \(pat, ex) ->
-                        Just $ BindS <$> (haskellPat pat) <*> (haskellExp ex)
+                        Just $ liftA2 BindS (haskellPat pat) (haskellExp ex)
                         
         letExpr = divideAtSymbol "=" str >>= \(pat, ex) -> Just $ LetS . (:[]) <$> var (drop 4 pat, ex)
           where
             var :: (String, String) -> Q Dec 
             var (pat, ex)
-              | ' ' `elem` trim pat = FunD (mkName (takeWhile (/=' ') pat)) <$> (:[]) <$> (Clause 
-                      <$> mapM haskellPat (split " " (trim (dropWhile (/=' ') pat)))
-                      <*> fmap NormalB (haskellExp ex)
-                      <*> return [])
+              | ' ' `elem` trim pat = FunD (mkName (takeWhile (/=' ') pat)) . (:[]) <$> liftA3 Clause 
+                      (mapM haskellPat (split " " (trim (dropWhile (/=' ') pat))))
+                      (fmap NormalB (haskellExp ex))
+                      (return [])
               | otherwise = ValD <$> haskellPat pat <*> (NormalB <$> haskellExp ex) <*> return []
                     
         nobindS :: Q Stmt
@@ -75,8 +75,8 @@ cond :: Syntax -> Q Exp
 cond = condS . withCmp (Compiler cmp)
   where
     condS :: Code (Exp, Exp) -> Q Exp
-    condS (x :| []) = x >>= \(cond, ex) -> [| if $(return cond) then $(return ex) else error "Nothing could match!" |]
-    condS (x :| xs) = x >>= \(cond, ex) -> [| if $(return cond) then $(return ex) else $(condS (fromList xs)) |]
+    condS (x :| []) = x >>= \(p, ex) -> [| if $(return p) then $(return ex) else error "Nothing could match!" |]
+    condS (x :| xs) = x >>= \(p, ex) -> [| if $(return p) then $(return ex) else $(condS (fromList xs)) |]
     
     cmp :: String -> Q (Exp, Exp)
     cmp s = let (f', s') = fromJust $ divideAtSymbol "->" s
@@ -86,11 +86,11 @@ cond = condS . withCmp (Compiler cmp)
 -- | Classic left fold over Syntax and with Q Exp.
 -- All strings in Syntax are evaluated as a haskell expression! 
 foldC :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> Syntax -> Q Exp
-foldC fn a1 m = go fn a1 $ map haskellExp (toList m)
+foldC f a1 m = go f a1 $ map haskellExp (toList m)
   where
     go :: Q Exp {-(b -> a -> b)-} -> Q Exp {- b -} -> [Q Exp] -> Q Exp
-    go fn a1 [] = a1
-    go fn a1 (x:xs) = go fn [| $fn $a1 $x |] xs
+    go _ acc [] = acc
+    go fn acc (x:xs) = go fn [| $fn $acc $x |] xs
 
 -- | Classic foldl1, see above
 foldC1 :: Q Exp {-(b -> a -> b)-} -> Syntax -> Q Exp
